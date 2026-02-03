@@ -60,3 +60,10 @@ ejecuta esto en la terminal del BACKEND:
 >> PUERTOS USADOS:
 - Backend: 4000
 - Frontend: 5173
+
+Para subir al git los cambios:
+git add . (Prepara los cambios)
+
+git commit -m "Explicación de lo que cambiaste" (Guarda los cambios)
+
+git push (Sube los cambios a la nube)

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+// Importamos el nuevo bloque de estructura
+import Filtros from '../components/Filtros';
 
 function Home() {
   const [libros, setLibros] = useState([]);
@@ -12,17 +14,19 @@ function Home() {
   }, []);
 
   return (
-    // 'container-fluid' hace que ocupe todo el ancho
-    // 'p-4' añade un poco de relleno para que no se pegue a los bordes
     <div className="container-fluid p-4">
-      <h1 className="text-center mb-4">📚 Catálogo Completo</h1>
       
+      {/* 1. INSERCIÓN: La barra de filtros debajo del menú principal */}
+      <Filtros />
+
+      <hr /> {/* Una línea separadora para organizar visualmente */}
+
+      {/* 2. CAMBIO: Título exacto del Figma */}
+      <h2 className="text-center mb-4">Libros</h2>
+      
+      {/* 3. GRID: Estructura de 4 columnas (Ya la teníamos bien configurada) */}
       <div className="row">
         {libros.map((libro) => (
-          // AQUI ESTA EL CAMBIO IMPORTANTE DE TAMAÑO:
-          // col-12: Móvil (Ocupa todo)
-          // col-md-6: Tablet (Mitad de pantalla)
-          // col-lg-3: PC (Un cuarto de pantalla, caben 4 libros)
           <div key={libro._id} className="col-12 col-md-6 col-lg-3 mb-4">
             <div className="card h-100 shadow-sm">
               <img 

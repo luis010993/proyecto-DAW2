@@ -7,9 +7,12 @@ import CarritoPage from './pages/CarritoPage';
 import LoginPage from './pages/LoginPage'; // [NUEVO IMPORT]
 import { CarritoProvider } from './context/CarritoContext';
 import RegisterPage from './pages/RegisterPage'; // [NUEVO]
+import { AuthProvider } from "./context/AuthContext"; // <--- IMPORTAR
+
 
 function App() {
   return (
+    <AuthProvider> {/* <--- EL PADRE SUPREMO */}
     <BrowserRouter>
       <CarritoProvider>
         <Navbar />
@@ -25,6 +28,7 @@ function App() {
         </Routes>
       </CarritoProvider>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 export default App;

@@ -1,8 +1,48 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // <--- Importamos el contexto
 
 function LoginPage() {
+  // 1. ESTADOS PARA LOS INPUTS
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
+  // 2. HOOKS DE NAVEGACIÓN Y CONTEXTO
+  const navigate = useNavigate();
+  const { login } = useAuth(); // La función que actualiza el estado global
+
+  // 3. FUNCIÓN PARA ENVIAR EL FORMULARIO
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Evita que la página se recargue
+
+    try {
+      // Petición al Backend
+      const respuesta = await fetch("http://localhost:4000/api/usuarios/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const datos = await respuesta.json();
+
+      if (respuesta.ok) {
+        // SI ES CORRECTO:
+        // a) Guardamos el usuario en el contexto
+        login(datos);
+        // b) Redirigimos al inicio
+        navigate("/");
+      } else {
+        // SI FALLA (ej: contraseña incorrecta)
+        alert("Error: " + datos.mensaje);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error al conectar con el servidor");
+    }
+  };
+
   return (
-    // CONTENEDOR PRINCIPAL: Ocupa toda la altura (vh-100) y fondo gris claro
+    // CONTENEDOR PRINCIPAL
     <div className="d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#f0f2f5' }}>
       
       {/* TARJETA BLANCA CENTRADA */}
@@ -10,13 +50,19 @@ function LoginPage() {
         
         <h3 className="text-center mb-4 fw-bold">Inicia sesión</h3>
 
-        <form>
-       {/* INPUT EMAIL */}
+        {/* AGREGAMOS onSubmit AL FORMULARIO */}
+        <form onSubmit={handleSubmit}>
+          
+          {/* INPUT EMAIL */}
           <div className="mb-3">
             <input 
               type="email" 
               className="form-control py-2" 
-              placeholder="Correo electrónico" // [CAMBIO PARA SER CLAROS]
+              placeholder="Correo electrónico"
+              // VINCULAMOS CON EL ESTADO
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
@@ -26,6 +72,10 @@ function LoginPage() {
               type="password" 
               className="form-control py-2" 
               placeholder="Contraseña" 
+              // VINCULAMOS CON EL ESTADO
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
@@ -36,10 +86,11 @@ function LoginPage() {
             <hr className="flex-grow-1" />
           </div>
 
-          {/* BOTÓN GOOGLE */}
+          {/* BOTÓN GOOGLE (Solo visual por ahora) */}
           <button 
             type="button" 
             className="btn btn-light w-100 d-flex align-items-center justify-content-center border mb-4 py-2"
+            onClick={() => alert("Función de Google próximamente")}
           >
             {/* Icono SVG de Google */}
             <svg className="me-2" width="18" height="18" viewBox="0 0 18 18">

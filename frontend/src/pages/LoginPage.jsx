@@ -16,8 +16,11 @@ function LoginPage() {
     e.preventDefault(); // Evita que la página se recargue
 
     try {
-      // Petición al Backend
-      const respuesta = await fetch("http://localhost:4000/api/usuarios/login", {
+      // DEFINIMOS LA URL (Nube o Local)
+      const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+
+      // Petición al Backend usando la variable URL
+      const respuesta = await fetch(`${URL}/api/usuarios/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -27,12 +30,10 @@ function LoginPage() {
 
       if (respuesta.ok) {
         // SI ES CORRECTO:
-        // a) Guardamos el usuario en el contexto
         login(datos);
-        // b) Redirigimos al inicio
         navigate("/");
       } else {
-        // SI FALLA (ej: contraseña incorrecta)
+        // SI FALLA
         alert("Error: " + datos.mensaje);
       }
     } catch (error) {
@@ -40,7 +41,6 @@ function LoginPage() {
       alert("Error al conectar con el servidor");
     }
   };
-
   return (
     // CONTENEDOR PRINCIPAL
     <div className="d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#f0f2f5' }}>

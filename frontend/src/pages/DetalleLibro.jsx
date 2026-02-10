@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-// [NUEVO] Importamos el carrito
 import { useCarrito } from '../context/CarritoContext';
 
 function DetalleLibro() {
   const { id } = useParams();
   const [libro, setLibro] = useState(null);
   
-  // [NUEVO] Sacamos la función de añadir del contexto
   const { agregarAlCarrito } = useCarrito();
 
   useEffect(() => {
-    axios.get(`http://localhost:4000/api/libros/${id}`)
+    // 1. CAMBIO IMPORTANTE: Definimos la URL dinámica
+    const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+
+    // 2. Usamos esa URL en la petición
+    axios.get(`${URL}/api/libros/${id}`)
       .then(res => setLibro(res.data))
-      .catch(err => console.error(err));
+      .catch(err => console.error("Error cargando el libro:", err));
   }, [id]);
 
   if (!libro) return <div className="text-center mt-5">Cargando libro...</div>;
@@ -25,7 +27,11 @@ function DetalleLibro() {
       
       <div className="row">
         <div className="col-md-4">
-          <img src={libro.portada_url} alt={libro.titulo} className="img-fluid rounded shadow" />
+          <img 
+            src={libro.portada_url || "https://via.placeholder.com/300"} 
+            alt={libro.titulo} 
+            className="img-fluid rounded shadow" 
+          />
         </div>
         <div className="col-md-8">
           <h1>{libro.titulo}</h1>
@@ -36,7 +42,6 @@ function DetalleLibro() {
           <div className="card bg-light p-3 mt-4">
             <h5>Opciones de Compra:</h5>
             <div className="d-flex gap-3 mt-2">
-              {/* [NUEVO] Botones conectados al carrito */}
               <button 
                 className="btn btn-primary"
                 onClick={() => agregarAlCarrito(libro)}

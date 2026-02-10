@@ -21,7 +21,13 @@ function RegisterPage() {
     }
 
     try {
-        await axios.post('http://localhost:4000/api/usuarios', { nombre, email, password });
+        // --- CAMBIO CLAVE AQUÍ ---
+        // Definimos la URL inteligente (Nube o Local)
+        const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+
+        // Usamos esa variable en la petición
+        await axios.post(`${URL}/api/usuarios`, { nombre, email, password });
+        
         setAlerta({ msg: "¡Cuenta creada con éxito! Redirigiendo...", error: false });
         
         setTimeout(() => {
@@ -35,7 +41,6 @@ function RegisterPage() {
         });
     }
   };
-
   return (
     <div className="d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#f0f2f5' }}>
       

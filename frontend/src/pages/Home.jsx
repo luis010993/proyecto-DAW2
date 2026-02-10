@@ -1,45 +1,59 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
 // Importamos el nuevo bloque de estructura
-import Filtros from '../components/Filtros';
+import Filtros from "../components/Filtros";
 
 function Home() {
   const [libros, setLibros] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:4000/api/libros')
-      .then(res => setLibros(res.data))
-      .catch(err => console.error(err));
+    // 1. Definimos la función asíncrona dentro del useEffect
+    const fetchLibros = async () => {
+      try {
+        // La lógica de la URL es correcta:
+        const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+        
+        // Hacemos la petición
+        const res = await axios.get(`${URL}/api/libros`);
+        
+        // 2. ¡IMPORTANTE! Guardamos los datos en el estado:
+        setLibros(res.data); 
+        
+      } catch (error) {
+        console.error("Error cargando libros:", error);
+      }
+    };
+
+    // 3. Ejecutamos la función
+    fetchLibros();
   }, []);
 
   return (
     <div className="container-fluid p-4">
-      
       {/* 1. INSERCIÓN: La barra de filtros debajo del menú principal */}
       <Filtros />
-
       <hr /> {/* Una línea separadora para organizar visualmente */}
-
       {/* 2. CAMBIO: Título exacto del Figma */}
       <h2 className="text-center mb-4">Libros</h2>
-      
       {/* 3. GRID: Estructura de 4 columnas (Ya la teníamos bien configurada) */}
       <div className="row">
         {libros.map((libro) => (
           <div key={libro._id} className="col-12 col-md-6 col-lg-3 mb-4">
             <div className="card h-100 shadow-sm">
-              <img 
-                src={libro.portada_url || "https://via.placeholder.com/300"} 
-                className="card-img-top" 
-                alt={libro.titulo} 
-                style={{ height: '350px', objectFit: 'cover' }} 
+              <img
+                src={libro.portada_url || "https://via.placeholder.com/300"}
+                className="card-img-top"
+                alt={libro.titulo}
+                style={{ height: "350px", objectFit: "cover" }}
               />
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title">{libro.titulo}</h5>
                 <p className="card-text text-muted">{libro.autor}</p>
                 <div className="mt-auto d-flex justify-content-between align-items-center">
-                  <span className="h5 text-primary mb-0">{libro.precio?.fisico} €</span>
+                  <span className="h5 text-primary mb-0">
+                    {libro.precio?.fisico} €
+                  </span>
                   <Link to={`/libro/${libro._id}`} className="btn btn-dark">
                     Ver Detalles
                   </Link>

@@ -1,19 +1,16 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useCarrito } from "../context/CarritoContext";
-import { useAuth } from "../context/AuthContext"; // <--- IMPORTACIÓN ACTIVADA
-import logo from "../images/logo.jpg"; // Asegúrate de que la ruta sea correcta
+import { useAuth } from "../context/AuthContext"; 
+import logo from "../images/logo.jpg"; 
 
 function Navbar() {
   const { cantidadTotal } = useCarrito();
   const navigate = useNavigate();
-
-  // --- CONEXIÓN REAL AL CONTEXTO ---
-  // Extraemos el usuario real y la función para salir
   const { usuario, logout } = useAuth(); 
 
   const handleCerrarSesion = () => {
-    logout(); // Limpia el estado y el localStorage
-    navigate("/"); // Redirige al inicio
+    logout();
+    navigate("/");
   };
 
   return (
@@ -28,38 +25,48 @@ function Navbar() {
         </button>
 
         <div className="collapse navbar-collapse" id="navbarNav">
+          
+          {/* 1. MENÚ IZQUIERDO (Inicio + Admin) */}
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+            <li className="nav-item">
+              <Link className="nav-link" to="/">Inicio</Link>
+            </li>
+
+            {/* 👇 AQUÍ ESTÁ LA CONDICIÓN DEL ROL 👇 */}
+            {usuario && (usuario.rol === 'admin' || usuario.rol === 'editorial') && (
+              <li className="nav-item">
+                <Link className="nav-link text-warning fw-bold" to="/crear-libro">
+                  ⚡ Panel Admin
+                </Link>
+              </li>
+            )}
+          </ul>
+
+          {/* 2. MENÚ DERECHO (Carrito + Usuario) */}
           <ul className="navbar-nav ms-auto align-items-center">
             
-            {/* CARRITO (Siempre visible) */}
+            {/* CARRITO */}
             <li className="nav-item me-3">
               <Link className="nav-link" to="/carrito">
                 🛒 Carrito <span className="badge bg-primary">{cantidadTotal}</span>
               </Link>
             </li>
 
-            {/* --- LÓGICA: ¿HAY USUARIO REAL? --- */}
+            {/* USUARIO / LOGIN */}
             {usuario ? (
-              // === OPCIÓN A: USUARIO LOGUEADO ===
+              // === USUARIO LOGUEADO ===
               <li className="nav-item dropdown">
                 <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                  {/* Muestra el nombre real de la base de datos */}
                   👋 Benvingut, {usuario.nombre}
                 </a>
                 <ul className="dropdown-menu dropdown-menu-end">
-                  {/* Bloque Personal */}
                   <li><Link className="dropdown-item" to="/perfil">Editar perfil</Link></li>
                   <li><Link className="dropdown-item" to="/favoritos">Favoritos</Link></li>
-                  
                   <li><hr className="dropdown-divider" /></li>
-                  
-                  {/* Bloque Historial */}
                   <li><h6 className="dropdown-header">Historial</h6></li>
                   <li><Link className="dropdown-item" to="/historial/compras"> 📦 Compras</Link></li>
                   <li><Link className="dropdown-item" to="/historial/descargas"> ⬇️ Descargas</Link></li>
-
                   <li><hr className="dropdown-divider" /></li>
-
-                  {/* Cerrar Sesión */}
                   <li>
                     <button className="dropdown-item text-danger" onClick={handleCerrarSesion}>
                       Tanca la sessio
@@ -68,7 +75,7 @@ function Navbar() {
                 </ul>
               </li>
             ) : (
-              // === OPCIÓN B: INVITADO (NO LOGUEADO) ===
+              // === INVITADO ===
               <li className="nav-item dropdown">
                 <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                   👤 Iniciar sesión

@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage'; // [NUEVO IMPORT]
 import { CarritoProvider } from './context/CarritoContext';
 import RegisterPage from './pages/RegisterPage'; // [NUEVO]
 import { AuthProvider } from "./context/AuthContext"; // <--- IMPORTAR
+import CrearLibro from './pages/CrearLibro';
 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/libro/:id" element={<DetalleLibro />} />
           <Route path="/carrito" element={<CarritoPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/crear-libro" element={<CrearLibro />} />
           
           {/* [NUEVA RUTA] */}
           <Route path="/registro" element={<RegisterPage />} />

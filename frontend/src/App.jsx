@@ -11,6 +11,7 @@ import { AuthProvider } from "./context/AuthContext"; // <--- IMPORTAR
 import CrearLibro from './pages/CrearLibro';
 import AdminUsuarios from './pages/AdminUsuarios';
 import AdminLibros from './pages/AdminLibros';
+import EditarLibro from './pages/EditarLibro';
 
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/registro" element={<RegisterPage />} />
           <Route path="/admin/usuarios" element={<AdminUsuarios />} />
           <Route path="/admin/libros" element={<AdminLibros />} />
+          <Route path="/editar-libro/:id" element={<EditarLibro />} />
         </Routes>
       </CarritoProvider>
     </BrowserRouter>

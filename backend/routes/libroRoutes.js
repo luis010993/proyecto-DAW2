@@ -54,5 +54,21 @@ router.post('/', uploadCloud.single('imagen'), async (req, res) => {
         res.status(400).json({ message: "Error al crear el libro", error: error.message });
     }
 });
-
+// --- RUTA 4: Actualizar el rol de un usuario ---
+router.put('/:id', async (req, res) => {
+    try {
+        const { rol } = req.body; // Recibimos el nuevo rol (ej: "admin")
+        
+        // Buscamos al usuario por ID y actualizamos su campo 'rol'
+        const usuarioActualizado = await Usuario.findByIdAndUpdate(
+            req.params.id, 
+            { rol: rol }, 
+            { new: true } // Esto hace que nos devuelva el usuario ya cambiado
+        );
+        
+        res.json(usuarioActualizado);
+    } catch (error) {
+        res.status(500).json({ message: "Error al actualizar rol" });
+    }
+});
 module.exports = router;

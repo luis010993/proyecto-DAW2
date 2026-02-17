@@ -9,6 +9,7 @@ import { CarritoProvider } from './context/CarritoContext';
 import RegisterPage from './pages/RegisterPage'; // [NUEVO]
 import { AuthProvider } from "./context/AuthContext"; // <--- IMPORTAR
 import CrearLibro from './pages/CrearLibro';
+import AdminUsuarios from './pages/AdminUsuarios';
 
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
           
           {/* [NUEVA RUTA] */}
           <Route path="/registro" element={<RegisterPage />} />
-          
+          <Route path="/admin/usuarios" element={<AdminUsuarios />} />
         </Routes>
       </CarritoProvider>
     </BrowserRouter>

@@ -5,16 +5,18 @@ import { useNavigate } from 'react-router-dom';
 function CrearLibro() {
   const navigate = useNavigate();
   
-  // Estado inicial del formulario
+  // 1. Estado para los textos
   const [formData, setFormData] = useState({
     titulo: '',
     autor: '',
     sinopsis: '',
     precio_fisico: '',
     precio_digital: '',
-    portada_url: '',
     stock: 10
   });
+
+  // 2. Estado separado para el ARCHIVO de imagen
+  const [file, setFile] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -23,38 +25,46 @@ function CrearLibro() {
     });
   };
 
+  // 3. Nuevo manejador para el input de tipo archivo
+  const handleFileChange = (e) => {
+    // Guardamos el primer archivo seleccionado
+    setFile(e.target.files[0]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
       
-      // Preparamos el objeto para que coincida con tu Modelo de Mongoose
-      // Aseguramos que los precios sean números
-      const libroAEnviar = {
-        titulo: formData.titulo,
-        autor: formData.autor,
-        sinopsis: formData.sinopsis,
-        portada_url: formData.portada_url,
-        precio: {
-            fisico: parseFloat(formData.precio_fisico),
-            digital: parseFloat(formData.precio_digital)
-        },
-        stock: parseInt(formData.stock)
-      };
+      // 4. CREAR FORM DATA (Obligatorio para enviar archivos)
+      const data = new FormData();
+      
+      // Añadimos los textos uno a uno
+      data.append('titulo', formData.titulo);
+      data.append('autor', formData.autor);
+      data.append('sinopsis', formData.sinopsis);
+      data.append('precio_fisico', formData.precio_fisico);
+      data.append('precio_digital', formData.precio_digital);
+      data.append('stock', formData.stock);
 
-      // Recogemos el token (Asumo que lo guardaste en localStorage al hacer login)
-      // Si no usas localStorage, quita el header 'Authorization'
+      // Añadimos la imagen (Si el usuario seleccionó una)
+      // IMPORTANTE: La palabra 'imagen' debe coincidir con uploadCloud.single('imagen') del backend
+      if (file) {
+        data.append('imagen', file);
+      }
+
       const token = localStorage.getItem('token'); 
 
-      await axios.post(`${URL}/api/libros`, libroAEnviar, {
+      // 5. Enviar data (axios detecta automáticamente que es multipart/form-data)
+      await axios.post(`${URL}/api/libros`, data, {
         headers: {
           'Authorization': `Bearer ${token}` 
         }
       });
 
       alert('¡Libro creado con éxito!');
-      navigate('/'); // Volvemos al inicio para verlo
+      navigate('/'); 
 
     } catch (error) {
       console.error(error);
@@ -90,9 +100,15 @@ function CrearLibro() {
             </div>
           </div>
 
+          {/* CAMBIO IMPORTANTE: Input tipo FILE */}
           <div className="mb-3">
-            <label className="form-label">URL de la Portada (Imagen)</label>
-            <input type="url" name="portada_url" className="form-control" placeholder="https://..." onChange={handleChange} />
+            <label className="form-label">Subir Portada (Imagen)</label>
+            <input 
+              type="file" 
+              className="form-control" 
+              accept="image/*" // Solo acepta imágenes
+              onChange={handleFileChange} 
+            />
           </div>
 
           <div className="mb-3">

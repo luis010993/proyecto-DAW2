@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const uploadCloud = require('../config/cloudinary'); 
 const Libro = require('../models/Libro');
 
 // RUTA 1: Obtener todos los libros
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// --- RUTA 2: ESTA ES LA QUE TE FALTA O FALLA ---
+// RUTA 2: Obtener un libro por ID
 router.get('/:id', async (req, res) => {
     try {
         const libro = await Libro.findById(req.params.id);
@@ -24,6 +25,34 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// -----------------------------------------------
 
-module.exports = router; // <--- ESTO DEBE IR AL FINAL DEL TODO
+// RUTA 3: Crear libro (Aquí he metido la lógica del controlador que te faltaba)
+router.post('/', uploadCloud.single('imagen'), async (req, res) => {
+    try {
+        // La magia de Cloudinary:
+        // Si el archivo se subió bien, la URL estará en req.file.path
+        const { titulo, autor, sinopsis, precio_fisico, precio_digital, stock } = req.body;
+
+        const nuevoLibro = new Libro({
+            titulo,
+            autor,
+            sinopsis,
+            // Guardamos la URL que nos da Cloudinary
+            portada_url: req.file ? req.file.path : 'https://via.placeholder.com/300', 
+            precio: {
+                fisico: parseFloat(precio_fisico),
+                digital: parseFloat(precio_digital)
+            },
+            stock: parseInt(stock)
+        });
+
+        const libroGuardado = await nuevoLibro.save();
+        res.status(201).json(libroGuardado);
+        
+    } catch (error) {
+        console.error("Error al crear libro:", error);
+        res.status(400).json({ message: "Error al crear el libro", error: error.message });
+    }
+});
+
+module.exports = router;

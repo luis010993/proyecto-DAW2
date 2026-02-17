@@ -5,17 +5,17 @@ import { useNavigate } from 'react-router-dom';
 function CrearLibro() {
   const navigate = useNavigate();
   
-  // 1. Estado para los textos
+  // 1. AÑADIMOS isbn AL ESTADO
   const [formData, setFormData] = useState({
     titulo: '',
     autor: '',
+    isbn: '', // <--- Nuevo campo
     sinopsis: '',
     precio_fisico: '',
     precio_digital: '',
     stock: 10
   });
 
-  // 2. Estado separado para el ARCHIVO de imagen
   const [file, setFile] = useState(null);
 
   const handleChange = (e) => {
@@ -25,9 +25,7 @@ function CrearLibro() {
     });
   };
 
-  // 3. Nuevo manejador para el input de tipo archivo
   const handleFileChange = (e) => {
-    // Guardamos el primer archivo seleccionado
     setFile(e.target.files[0]);
   };
 
@@ -37,30 +35,23 @@ function CrearLibro() {
     try {
       const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
       
-      // 4. CREAR FORM DATA (Obligatorio para enviar archivos)
       const data = new FormData();
-      
-      // Añadimos los textos uno a uno
       data.append('titulo', formData.titulo);
       data.append('autor', formData.autor);
+      data.append('isbn', formData.isbn); // <--- 2. ENVIAMOS EL ISBN
       data.append('sinopsis', formData.sinopsis);
       data.append('precio_fisico', formData.precio_fisico);
       data.append('precio_digital', formData.precio_digital);
       data.append('stock', formData.stock);
 
-      // Añadimos la imagen (Si el usuario seleccionó una)
-      // IMPORTANTE: La palabra 'imagen' debe coincidir con uploadCloud.single('imagen') del backend
       if (file) {
         data.append('imagen', file);
       }
 
       const token = localStorage.getItem('token'); 
 
-      // 5. Enviar data (axios detecta automáticamente que es multipart/form-data)
       await axios.post(`${URL}/api/libros`, data, {
-        headers: {
-          'Authorization': `Bearer ${token}` 
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       alert('¡Libro creado con éxito!');
@@ -68,7 +59,8 @@ function CrearLibro() {
 
     } catch (error) {
       console.error(error);
-      alert('Error al crear el libro');
+      // Mostramos el mensaje exacto si viene del backend (ej: ISBN duplicado)
+      alert(error.response?.data?.message || 'Error al crear el libro');
     }
   };
 
@@ -83,6 +75,20 @@ function CrearLibro() {
             <label className="form-label">Título</label>
             <input type="text" name="titulo" className="form-control" required onChange={handleChange} />
           </div>
+
+          {/* --- 3. INPUT PARA EL ISBN --- */}
+          <div className="mb-3">
+            <label className="form-label">ISBN (Identificador Único)</label>
+            <input 
+                type="text" 
+                name="isbn" 
+                className="form-control" 
+                placeholder="Ej: 978-3-16-148410-0"
+                required 
+                onChange={handleChange} 
+            />
+          </div>
+          {/* ----------------------------- */}
 
           <div className="mb-3">
             <label className="form-label">Autor</label>
@@ -100,15 +106,9 @@ function CrearLibro() {
             </div>
           </div>
 
-          {/* CAMBIO IMPORTANTE: Input tipo FILE */}
           <div className="mb-3">
             <label className="form-label">Subir Portada (Imagen)</label>
-            <input 
-              type="file" 
-              className="form-control" 
-              accept="image/*" // Solo acepta imágenes
-              onChange={handleFileChange} 
-            />
+            <input type="file" className="form-control" accept="image/*" onChange={handleFileChange} />
           </div>
 
           <div className="mb-3">

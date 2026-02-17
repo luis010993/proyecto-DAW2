@@ -12,6 +12,7 @@ const libroSchema = new mongoose.Schema({
     },
     isbn: { 
         type: String, 
+        required: true,
         unique: true // No puede haber dos libros con el mismo ISBN
     },
     sinopsis: { 

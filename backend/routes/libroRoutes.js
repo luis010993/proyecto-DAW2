@@ -29,21 +29,26 @@ router.get('/:id', async (req, res) => {
 // RUTA 3: Crear libro (Aquí he metido la lógica del controlador que te faltaba)
 router.post('/', uploadCloud.single('imagen'), async (req, res) => {
     try {
-        // La magia de Cloudinary:
-        // Si el archivo se subió bien, la URL estará en req.file.path
-        const { titulo, autor, sinopsis, precio_fisico, precio_digital, stock } = req.body;
+        // 1. AÑADIMOS 'isbn' A LA LISTA DE COSAS QUE RECIBIMOS
+        const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
 
+        // Validaciones numéricas (esto ya lo tenías)
+        const precioFisicoNum = parseFloat(precio_fisico) || 0;
+        const precioDigitalNum = parseFloat(precio_digital) || 0;
+        const stockNum = parseInt(stock) || 0;
+
+        // 2. CREAMOS EL LIBRO CON EL ISBN
         const nuevoLibro = new Libro({
             titulo,
             autor,
+            isbn, // <--- ¡IMPORTANTE! Añadir esto aquí
             sinopsis,
-            // Guardamos la URL que nos da Cloudinary
             portada_url: req.file ? req.file.path : 'https://via.placeholder.com/300', 
             precio: {
-                fisico: parseFloat(precio_fisico),
-                digital: parseFloat(precio_digital)
+                fisico: precioFisicoNum,
+                digital: precioDigitalNum
             },
-            stock: parseInt(stock)
+            stock: stockNum
         });
 
         const libroGuardado = await nuevoLibro.save();
@@ -51,6 +56,12 @@ router.post('/', uploadCloud.single('imagen'), async (req, res) => {
         
     } catch (error) {
         console.error("Error al crear libro:", error);
+        
+        // --- TRUCO PRO: Detectar si es error de ISBN duplicado ---
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Error: Ese ISBN ya existe en la base de datos." });
+        }
+        
         res.status(400).json({ message: "Error al crear el libro", error: error.message });
     }
 });

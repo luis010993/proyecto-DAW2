@@ -115,56 +115,54 @@ router.delete("/:id", async (req, res) => {
 
 router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
     try {
-        // Recibimos los datos
         const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
 
-        // 1. VALIDACIÓN BÁSICA: El ISBN no puede estar vacío
-        if (!isbn || isbn.trim() === '') {
-            return res.status(400).json({ message: "El campo ISBN es obligatorio. Si este libro es antiguo, asígnale uno nuevo." });
-        }
-
-
-        const existeDuplicado = await Libro.findOne({ 
-            isbn: isbn, 
-            _id: { $ne: req.params.id } 
-        });
-
-        if (existeDuplicado) {
-            return res.status(400).json({ message: "Error: Este ISBN ya pertenece a otro libro." });
-        }
-
-        // 3. Recuperamos el libro original para no perder la foto si no se sube una nueva
+        // 1. Buscamos el libro original
         const libroOriginal = await Libro.findById(req.params.id);
         if (!libroOriginal) {
             return res.status(404).json({ message: "Libro no encontrado" });
         }
 
-        // 4. Preparamos los datos
+        // 2. Preparamos el objeto a actualizar
+        // Usamos una lógica más segura para los números
         const datosAActualizar = {
             titulo,
             autor,
-            isbn, // Guardamos el ISBN (sea el mismo o uno nuevo)
+            isbn, 
             sinopsis,
             precio: {
                 fisico: parseFloat(precio_fisico) || 0,
                 digital: parseFloat(precio_digital) || 0
             },
             stock: parseInt(stock) || 0,
-            // Si hay foto nueva (req.file) la usamos, si no, dejamos la vieja
             portada_url: req.file ? req.file.path : libroOriginal.portada_url
         };
 
-        // 5. Guardamos
+        // 3. Actualizamos (activando validadores de Mongoose)
         const libroActualizado = await Libro.findByIdAndUpdate(
             req.params.id, 
             datosAActualizar, 
-            { new: true } 
+            { new: true, runValidators: true } // runValidators: true es clave para que chequee el required
         );
 
         res.json(libroActualizado);
 
     } catch (error) {
-        console.error("Error al actualizar:", error);
+        console.error("Error al actualizar:", error); // Esto sale en los logs de Railway
+
+        // --- MANEJO DE ERRORES ESPECÍFICOS ---
+
+        // Error de duplicado (E11000)
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Error: El ISBN ya existe en otro libro." });
+        }
+
+        // Error de validación (Falta campo obligatorio)
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: "Error de validación: Revisa que el ISBN y los campos obligatorios estén rellenos." });
+        }
+
+        // Error genérico (El 500 real)
         res.status(500).json({ message: "Error interno del servidor", error: error.message });
     }
 });

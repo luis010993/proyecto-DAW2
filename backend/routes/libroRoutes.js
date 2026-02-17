@@ -112,55 +112,61 @@ router.delete("/:id", async (req, res) => {
 // ... (Tus rutas GET, POST y DELETE anteriores)
 
 // RUTA 6: Actualizar un libro (PUT /api/libros/:id)
-router.put("/:id", uploadCloud.single("imagen"), async (req, res) => {
-  try {
-    const {
-      titulo,
-      autor,
-      isbn,
-      sinopsis,
-      precio_fisico,
-      precio_digital,
-      stock,
-    } = req.body;
 
-    // 1. Buscamos el libro original para no perder datos si algo viene vacío
-    const libroOriginal = await Libro.findById(req.params.id);
-    if (!libroOriginal) {
-      return res.status(404).json({ message: "Libro no encontrado" });
+router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
+    try {
+        // Recibimos los datos
+        const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
+
+        // 1. VALIDACIÓN BÁSICA: El ISBN no puede estar vacío
+        if (!isbn || isbn.trim() === '') {
+            return res.status(400).json({ message: "El campo ISBN es obligatorio. Si este libro es antiguo, asígnale uno nuevo." });
+        }
+
+
+        const existeDuplicado = await Libro.findOne({ 
+            isbn: isbn, 
+            _id: { $ne: req.params.id } 
+        });
+
+        if (existeDuplicado) {
+            return res.status(400).json({ message: "Error: Este ISBN ya pertenece a otro libro." });
+        }
+
+        // 3. Recuperamos el libro original para no perder la foto si no se sube una nueva
+        const libroOriginal = await Libro.findById(req.params.id);
+        if (!libroOriginal) {
+            return res.status(404).json({ message: "Libro no encontrado" });
+        }
+
+        // 4. Preparamos los datos
+        const datosAActualizar = {
+            titulo,
+            autor,
+            isbn, // Guardamos el ISBN (sea el mismo o uno nuevo)
+            sinopsis,
+            precio: {
+                fisico: parseFloat(precio_fisico) || 0,
+                digital: parseFloat(precio_digital) || 0
+            },
+            stock: parseInt(stock) || 0,
+            // Si hay foto nueva (req.file) la usamos, si no, dejamos la vieja
+            portada_url: req.file ? req.file.path : libroOriginal.portada_url
+        };
+
+        // 5. Guardamos
+        const libroActualizado = await Libro.findByIdAndUpdate(
+            req.params.id, 
+            datosAActualizar, 
+            { new: true } 
+        );
+
+        res.json(libroActualizado);
+
+    } catch (error) {
+        console.error("Error al actualizar:", error);
+        res.status(500).json({ message: "Error interno del servidor", error: error.message });
     }
-
-    // 2. Preparamos el objeto con los datos nuevos
-    const datosAActualizar = {
-      titulo,
-      autor,
-      isbn,
-      sinopsis,
-      precio: {
-        fisico: parseFloat(precio_fisico) || 0,
-        digital: parseFloat(precio_digital) || 0,
-      },
-      stock: parseInt(stock) || 0,
-      // TRUCO: Si hay archivo nuevo (req.file), usamos la nueva URL.
-      // Si no, mantenemos la URL que ya tenía el libro.
-      portada_url: req.file ? req.file.path : libroOriginal.portada_url,
-    };
-
-    // 3. Actualizamos en la BD
-    const libroActualizado = await Libro.findByIdAndUpdate(
-      req.params.id,
-      datosAActualizar,
-      { new: true }, // Para que nos devuelva el dato ya cambiado
-    );
-
-    res.json(libroActualizado);
-  } catch (error) {
-    console.error("Error al actualizar:", error);
-    res
-      .status(500)
-      .json({ message: "Error al actualizar el libro", error: error.message });
-  }
 });
-
 
 module.exports = router;

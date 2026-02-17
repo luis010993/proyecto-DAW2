@@ -113,58 +113,76 @@ router.delete("/:id", async (req, res) => {
 
 // RUTA 6: Actualizar un libro (PUT /api/libros/:id)
 
+// RUTA 5: Actualizar un libro (PUT /api/libros/:id)
+// MODO DEPURACIÓN ACTIVADO
 router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
+    
+    console.log("➡️ INICIO PUT LIBRO. ID:", req.params.id);
+    console.log("➡️ Datos recibidos (Body):", req.body);
+    console.log("➡️ Archivo recibido (File):", req.file ? "Sí, hay imagen nueva" : "No, se mantiene la anterior");
+
     try {
         const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
 
-        // 1. Buscamos el libro original
+        // 1. VALIDACIÓN MANUAL DE ISBN (Para evitar el crash de Mongoose)
+        // Si el ISBN está vacío, lanzamos error nosotros mismos para verlo claro
+        if (!isbn || isbn.trim() === '') {
+            console.log("❌ Error: ISBN vacío detectado");
+            return res.status(400).json({ message: "El campo ISBN es obligatorio." });
+        }
+
+        // 2. BUSCAR LIBRO ORIGINAL
         const libroOriginal = await Libro.findById(req.params.id);
         if (!libroOriginal) {
+            console.log("❌ Error: Libro no encontrado en BD");
             return res.status(404).json({ message: "Libro no encontrado" });
         }
 
-        // 2. Preparamos el objeto a actualizar
-        // Usamos una lógica más segura para los números
+        // 3. PREPARAR DATOS
+        // Convertimos los precios a número aquí mismo para ver si fallan
+        const pFisico = parseFloat(precio_fisico);
+        const pDigital = parseFloat(precio_digital);
+        const stockNum = parseInt(stock);
+
+        console.log(`➡️ Datos procesados: Físico=${pFisico}, Digital=${pDigital}, Stock=${stockNum}`);
+
         const datosAActualizar = {
             titulo,
             autor,
-            isbn, 
+            isbn,
             sinopsis,
             precio: {
-                fisico: parseFloat(precio_fisico) || 0,
-                digital: parseFloat(precio_digital) || 0
+                fisico: isNaN(pFisico) ? 0 : pFisico,
+                digital: isNaN(pDigital) ? 0 : pDigital
             },
-            stock: parseInt(stock) || 0,
+            stock: isNaN(stockNum) ? 0 : stockNum,
             portada_url: req.file ? req.file.path : libroOriginal.portada_url
         };
 
-        // 3. Actualizamos (activando validadores de Mongoose)
+        // 4. INTENTO DE ACTUALIZACIÓN
+        console.log("➡️ Intentando actualizar en MongoDB...");
+        
         const libroActualizado = await Libro.findByIdAndUpdate(
             req.params.id, 
             datosAActualizar, 
-            { new: true, runValidators: true } // runValidators: true es clave para que chequee el required
+            { new: true, runValidators: true } // Ojo: runValidators chequeará que el ISBN sea único
         );
 
+        console.log("✅ ¡ÉXITO! Libro actualizado.");
         res.json(libroActualizado);
 
     } catch (error) {
-        console.error("Error al actualizar:", error); // Esto sale en los logs de Railway
+        // AQUÍ ESTÁ LA CLAVE: Imprimimos el error REAL en la consola de Railway
+        console.error("🔥🔥🔥 ERROR FATAL EN EL BACKEND 🔥🔥🔥");
+        console.error("Tipo de error:", error.name);
+        console.error("Mensaje:", error.message);
+        console.error("Stack:", error.stack);
 
-        // --- MANEJO DE ERRORES ESPECÍFICOS ---
-
-        // Error de duplicado (E11000)
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Error: El ISBN ya existe en otro libro." });
-        }
-
-        // Error de validación (Falta campo obligatorio)
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({ message: "Error de validación: Revisa que el ISBN y los campos obligatorios estén rellenos." });
-        }
-
-        // Error genérico (El 500 real)
-        res.status(500).json({ message: "Error interno del servidor", error: error.message });
+        // Devolvemos el mensaje al frontend también
+        res.status(500).json({ 
+            message: "Error interno del servidor (Revisa logs)", 
+            error: error.message 
+        });
     }
 });
-
 module.exports = router;

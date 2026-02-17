@@ -31,14 +31,8 @@ function Navbar() {
             <li className="nav-item">
               <Link className="nav-link" to="/">Inicio</Link>
             </li>
-            {/* Si quieres mantener el acceso rápido (el rayo), déjalo aquí. Si no, bórralo. */}
-            {usuario && (usuario.rol === 'admin' || usuario.rol === 'editorial') && (
-              <li className="nav-item">
-                <Link className="nav-link text-warning fw-bold" to="/crear-libro">
-                   ⚡ Acceso Rápido
-                </Link>
-              </li>
-            )}
+          
+        
           </ul>
 
           {/* 2. MENÚ DERECHO */}

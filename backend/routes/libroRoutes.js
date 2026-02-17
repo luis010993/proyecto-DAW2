@@ -71,4 +71,20 @@ router.put('/:id', async (req, res) => {
         res.status(500).json({ message: "Error al actualizar rol" });
     }
 });
+// RUTA 5: Eliminar un libro (DELETE /api/libros/:id)
+router.delete('/:id', async (req, res) => {
+    try {
+        const libroEliminado = await Libro.findByIdAndDelete(req.params.id);
+        
+        if (!libroEliminado) {
+            return res.status(404).json({ message: 'Libro no encontrado' });
+        }
+        
+        // Opcional: Aquí podrías añadir código para borrar la foto de Cloudinary si quisieras ser muy limpio
+        
+        res.json({ message: 'Libro eliminado correctamente' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 module.exports = router;

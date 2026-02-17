@@ -69,7 +69,8 @@ function Navbar() {
                       <li><Link className="dropdown-item" to="/admin/usuarios">Administrar usuarios</Link></li>
                       
                       {/* Reutilizamos la ruta que ya creamos para crear libros */}
-                      <li><Link className="dropdown-item" to="/crear-libro">Administrar libros</Link></li>
+                      
+                      <li><Link className="dropdown-item" to="/admin/libros">Administrar libros</Link></li>
                       
                       <li><hr className="dropdown-divider" /></li>
                       

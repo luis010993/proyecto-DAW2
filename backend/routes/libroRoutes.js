@@ -2,28 +2,24 @@ const express = require("express");
 const router = express.Router();
 const uploadCloud = require("../config/cloudinary");
 const Libro = require("../models/Libro");
+const verificarToken = require("../middleware/auth");
 
 // ==========================================
 // RUTA 1: Obtener libros CON PAGINACIÓN
 // ==========================================
 router.get("/", async (req, res) => {
   try {
-    // 1. Recogemos los parámetros de la URL (ej: ?page=2&limit=12)
-    // Si no vienen, usamos valores por defecto (página 1, 12 libros por página)
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12; 
+    const limit = parseInt(req.query.limit) || 12;
 
-    // 2. Calculamos cuántos libros hay que saltarse (skip)
     const skip = (page - 1) * limit;
 
-    // 3. Ejecutamos dos consultas: contar total y buscar los libros de esta página
     const totalLibros = await Libro.countDocuments();
     
     const libros = await Libro.find()
       .skip(skip)
       .limit(limit);
 
-    // 4. Devolvemos un objeto con los datos y la info de paginación
     res.json({
       data: libros,
       paginacion: {
@@ -55,18 +51,16 @@ router.get("/:id", async (req, res) => {
 });
 
 // ==========================================
-// RUTA 3: Crear libro 
+// RUTA 3: Crear libro (PROTEGIDA)
 // ==========================================
-router.post("/", uploadCloud.single("imagen"), async (req, res) => {
+router.post("/", verificarToken, uploadCloud.single("imagen"), async (req, res) => {
   try {
     const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
 
-    // Validaciones numéricas
     const precioFisicoNum = parseFloat(precio_fisico) || 0;
     const precioDigitalNum = parseFloat(precio_digital) || 0;
     const stockNum = parseInt(stock) || 0;
 
-    // Validación ISBN básica
     if (!isbn || isbn.trim() === '') {
         return res.status(400).json({ message: "El campo ISBN es obligatorio." });
     }
@@ -82,44 +76,39 @@ router.post("/", uploadCloud.single("imagen"), async (req, res) => {
         digital: precioDigitalNum,
       },
       stock: stockNum,
+      // ASIGNAMOS EL DUEÑO
+      usuario: req.usuario.id  
     });
 
     const libroGuardado = await nuevoLibro.save();
     res.status(201).json(libroGuardado);
 
   } catch (error) {
-    console.error("Error al crear libro:", error);
-
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Error: Ese ISBN ya existe en la base de datos." });
-    }
-    res.status(400).json({ message: "Error al crear el libro", error: error.message });
+     console.error("Error al crear libro:", error);
+     if (error.code === 11000) return res.status(400).json({ message: "Error: ISBN duplicado." });
+     res.status(400).json({ message: "Error al crear libro", error: error.message });
   }
 });
 
 // ==========================================
-// RUTA 4: Actualizar un libro (PUT)
+// RUTA 4: Actualizar un libro (PROTEGIDA)
 // ==========================================
-router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
-    
-    // Logs para depuración
-    console.log("➡️ INICIO PUT LIBRO. ID:", req.params.id);
-    
+router.put('/:id', verificarToken, uploadCloud.single('imagen'), async (req, res) => {
     try {
+        // 1. EXTRAEMOS LOS DATOS DEL BODY (¡Esto faltaba antes!)
         const { titulo, autor, isbn, sinopsis, precio_fisico, precio_digital, stock } = req.body;
 
-        // 1. VALIDACIÓN ISBN
-        if (!isbn || isbn.trim() === '') {
-            return res.status(400).json({ message: "El campo ISBN es obligatorio." });
-        }
-
-        // 2. BUSCAR LIBRO ORIGINAL
+        // 2. Buscamos el libro original
         const libroOriginal = await Libro.findById(req.params.id);
-        if (!libroOriginal) {
-            return res.status(404).json({ message: "Libro no encontrado" });
+        if (!libroOriginal) return res.status(404).json({ message: "Libro no encontrado" });
+
+        // 3. SEGURIDAD: Verificar propiedad
+        // Comprobamos si existe el campo usuario antes de comparar para evitar crash en libros viejos
+        if (libroOriginal.usuario && libroOriginal.usuario.toString() !== req.usuario.id) {
+            return res.status(403).json({ message: "No tienes permiso para editar este libro (no es tuyo)." });
         }
 
-        // 3. PREPARAR DATOS
+        // 4. PREPARAR DATOS
         const pFisico = parseFloat(precio_fisico);
         const pDigital = parseFloat(precio_digital);
         const stockNum = parseInt(stock);
@@ -134,11 +123,10 @@ router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
                 digital: isNaN(pDigital) ? 0 : pDigital
             },
             stock: isNaN(stockNum) ? 0 : stockNum,
-            // Si hay foto nueva usamos esa, si no, la vieja
             portada_url: req.file ? req.file.path : libroOriginal.portada_url
         };
 
-        // 4. ACTUALIZAR
+        // 5. ACTUALIZAR
         const libroActualizado = await Libro.findByIdAndUpdate(
             req.params.id, 
             datosAActualizar, 
@@ -151,7 +139,6 @@ router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
     } catch (error) {
         console.error("Error backend:", error);
 
-        // Error duplicado
         if (error.code === 11000) {
             return res.status(400).json({ message: "Error: Ese ISBN ya pertenece a otro libro." });
         }
@@ -164,19 +151,23 @@ router.put('/:id', uploadCloud.single('imagen'), async (req, res) => {
 });
 
 // ==========================================
-// RUTA 5: Eliminar un libro
+// RUTA 5: Eliminar un libro (PROTEGIDA)
 // ==========================================
-router.delete("/:id", async (req, res) => {
-  try {
-    const libroEliminado = await Libro.findByIdAndDelete(req.params.id);
+router.delete('/:id', verificarToken, async (req, res) => {
+    try {
+        const libro = await Libro.findById(req.params.id);
+        if (!libro) return res.status(404).json({ message: 'Libro no encontrado' });
 
-    if (!libroEliminado) {
-      return res.status(404).json({ message: "Libro no encontrado" });
+        // SEGURIDAD: Verificar propiedad
+        if (libro.usuario && libro.usuario.toString() !== req.usuario.id) {
+            return res.status(403).json({ message: "No puedes borrar libros que no son tuyos." });
+        }
+
+        await Libro.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Libro eliminado correctamente' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
-    res.json({ message: "Libro eliminado correctamente" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
 });
 
 module.exports = router;

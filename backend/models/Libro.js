@@ -32,7 +32,12 @@ const libroSchema = new mongoose.Schema({
         type: Number, 
         default: 0 
     },
-    // Aquí está la clave de tu proyecto: el contenido gratuito
+    usuario: {
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Usuario',                       
+        required: true                        
+    },
+  
     contenido_gratuito: {
         disponible: { type: Boolean, default: false },
         enlace_descarga: { type: String } // URL al PDF/ePub
@@ -41,6 +46,7 @@ const libroSchema = new mongoose.Schema({
         type: Date, 
         default: Date.now 
     }
+    
 });
 
 module.exports = mongoose.model('Libro', libroSchema);

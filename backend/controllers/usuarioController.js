@@ -1,6 +1,10 @@
 const Usuario = require("../models/Usuario");
 const bcrypt = require("bcryptjs");
+const jwt = require('jsonwebtoken');
 
+// ==========================================
+// REGISTRAR USUARIO
+// ==========================================
 const registrarUsuario = async (req, res) => {
   const { email, password, nombre } = req.body;
 
@@ -17,14 +21,19 @@ const registrarUsuario = async (req, res) => {
       return res.status(400).json({ mensaje: "Ese nombre de usuario ya está ocupado ⛔" });
     }
 
-    // 3. Crear usuario (¡IMPORTANTE: añadí 'const')
+    // 3. Crear usuario
     const usuario = new Usuario(req.body);
 
     // 4. Encriptar password
     const salt = await bcrypt.genSalt(10);
     usuario.password = await bcrypt.hash(password, salt);
 
-    // 5. Guardar
+    // 5. Asignar rol por defecto si no viene (opcional pero recomendado)
+    if (!usuario.rol) {
+        usuario.rol = 'usuario';
+    }
+
+    // 6. Guardar
     await usuario.save();
 
     res.json({ mensaje: "¡Usuario creado correctamente! ✅" });
@@ -34,6 +43,9 @@ const registrarUsuario = async (req, res) => {
   }
 };
 
+// ==========================================
+// LOGIN USUARIO (Aquí estaba el fallo)
+// ==========================================
 const loginUsuario = async (req, res) => {
     const { email, password } = req.body;
 
@@ -45,20 +57,33 @@ const loginUsuario = async (req, res) => {
             return res.status(404).json({ mensaje: "Usuario no encontrado" });
         }
 
-        // 2. Verificar la contraseña (CORREGIDO)
-        // Usamos bcrypt.compare para comparar el texto plano con el hash de la BD
+        // 2. Verificar la contraseña
         const esCorrecto = await bcrypt.compare(password, usuario.password);
 
         if (!esCorrecto) {
             return res.status(401).json({ mensaje: "Contraseña incorrecta" });
         }
 
-        // 3. Si todo está bien, devolvemos los datos
+        // 3. GENERAR EL TOKEN (¡ESTO ES LO QUE FALTABA!) 🔑
+        // Creamos la "llave" con el ID y el ROL del usuario
+        const token = jwt.sign(
+            { 
+                id: usuario._id, 
+                rol: usuario.rol 
+            }, 
+            process.env.JWT_SECRET, // Usamos la palabra secreta de Railway
+            { expiresIn: '1d' }     // Caduca en 1 día
+        );
+
+        // 4. Devolvemos el Token y los datos del usuario
         res.json({
-            _id: usuario._id,
-            nombre: usuario.nombre,
-            email: usuario.email,
-            rol: usuario.rol
+            token, // <--- Importante: enviamos el token al frontend
+            usuario: {
+                _id: usuario._id,
+                nombre: usuario.nombre,
+                email: usuario.email,
+                rol: usuario.rol
+            }
         });
 
     } catch (error) {

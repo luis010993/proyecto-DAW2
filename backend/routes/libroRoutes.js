@@ -4,12 +4,36 @@ const uploadCloud = require("../config/cloudinary");
 const Libro = require("../models/Libro");
 
 // ==========================================
-// RUTA 1: Obtener todos los libros
+// RUTA 1: Obtener libros CON PAGINACIÓN
 // ==========================================
 router.get("/", async (req, res) => {
   try {
-    const libros = await Libro.find();
-    res.json(libros);
+    // 1. Recogemos los parámetros de la URL (ej: ?page=2&limit=12)
+    // Si no vienen, usamos valores por defecto (página 1, 12 libros por página)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12; 
+
+    // 2. Calculamos cuántos libros hay que saltarse (skip)
+    const skip = (page - 1) * limit;
+
+    // 3. Ejecutamos dos consultas: contar total y buscar los libros de esta página
+    const totalLibros = await Libro.countDocuments();
+    
+    const libros = await Libro.find()
+      .skip(skip)
+      .limit(limit);
+
+    // 4. Devolvemos un objeto con los datos y la info de paginación
+    res.json({
+      data: libros,
+      paginacion: {
+        totalLibros,
+        totalPaginas: Math.ceil(totalLibros / limit),
+        paginaActual: page,
+        librosPorPagina: limit
+      }
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

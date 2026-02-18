@@ -1,42 +1,59 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-// Importamos el nuevo bloque de estructura
 import Filtros from "../components/Filtros";
 
 function Home() {
   const [libros, setLibros] = useState([]);
+  
+  // 1. ESTADOS PARA PAGINACIÓN
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
+  // 2. AÑADIMOS LA DEPENDENCIA [paginaActual]
+  // Esto hace que la función se ejecute cada vez que cambiamos de página
   useEffect(() => {
-    // 1. Definimos la función asíncrona dentro del useEffect
+    
     const fetchLibros = async () => {
       try {
-        // La lógica de la URL es correcta:
         const URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
         
-        // Hacemos la petición
-        const res = await axios.get(`${URL}/api/libros`);
+        // 3. ENVIAMOS LOS PARÁMETROS DE PÁGINA Y LÍMITE
+        const res = await axios.get(`${URL}/api/libros?page=${paginaActual}&limit=12`);
         
-        // 2. ¡IMPORTANTE! Guardamos los datos en el estado:
-        setLibros(res.data); 
-        
+        // 4. ¡OJO AQUÍ! LA ESTRUCTURA CAMBIÓ EN EL BACKEND
+        // Antes era: res.data (directamente el array)
+        // Ahora es: res.data.data (el array) y res.data.paginacion (info extra)
+        setLibros(res.data.data); 
+        setTotalPaginas(res.data.paginacion.totalPaginas);
+
       } catch (error) {
         console.error("Error cargando libros:", error);
       }
     };
 
-    // 3. Ejecutamos la función
     fetchLibros();
-  }, []);
+    
+    // Scroll suave hacia arriba al cambiar de página
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  }, [paginaActual]); // <--- Importante: Array de dependencias
+
+  // Función para cambiar página
+  const cambiarPagina = (nuevaPagina) => {
+    if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+        setPaginaActual(nuevaPagina);
+    }
+  };
 
   return (
     <div className="container-fluid p-4">
-      {/* 1. INSERCIÓN: La barra de filtros debajo del menú principal */}
       <Filtros />
-      <hr /> {/* Una línea separadora para organizar visualmente */}
-      {/* 2. CAMBIO: Título exacto del Figma */}
+      <hr />
+      
       <h2 className="text-center mb-4">Libros</h2>
-      {/* 3. GRID: Estructura de 4 columnas (Ya la teníamos bien configurada) */}
+
+      {/* GRID DE LIBROS */}
       <div className="row">
         {libros.map((libro) => (
           <div key={libro._id} className="col-12 col-md-6 col-lg-3 mb-4">
@@ -63,6 +80,48 @@ function Home() {
           </div>
         ))}
       </div>
+
+      {/* 5. BARRA DE PAGINACIÓN (Nuevo) */}
+      {totalPaginas > 1 && (
+        <nav className="d-flex justify-content-center mt-4">
+            <ul className="pagination">
+                {/* Botón Anterior */}
+                <li className={`page-item ${paginaActual === 1 ? 'disabled' : ''}`}>
+                    <button 
+                        className="page-link" 
+                        onClick={() => cambiarPagina(paginaActual - 1)}
+                    >
+                        Anterior
+                    </button>
+                </li>
+
+                {/* Números de página */}
+                {[...Array(totalPaginas)].map((_, index) => (
+                    <li 
+                        key={index + 1} 
+                        className={`page-item ${paginaActual === index + 1 ? 'active' : ''}`}
+                    >
+                        <button 
+                            className="page-link" 
+                            onClick={() => cambiarPagina(index + 1)}
+                        >
+                            {index + 1}
+                        </button>
+                    </li>
+                ))}
+
+                {/* Botón Siguiente */}
+                <li className={`page-item ${paginaActual === totalPaginas ? 'disabled' : ''}`}>
+                    <button 
+                        className="page-link" 
+                        onClick={() => cambiarPagina(paginaActual + 1)}
+                    >
+                        Siguiente
+                    </button>
+                </li>
+            </ul>
+        </nav>
+      )}
     </div>
   );
 }
